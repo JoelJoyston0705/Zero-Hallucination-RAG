@@ -192,7 +192,7 @@ class BibleRAG:
         query_lower = query.lower()
         
         # Pattern 1: Book Chapter:Verse (e.g., "Psalm 110:1", "Genesis 1:26")
-        pattern_verse = r'(\d?\s*[a-zA-Z]+)\s+(\d+):(\d+)'
+        pattern_verse = r'([a-zA-Z]+)\s+(\d+):(\d+)'
         match = re.search(pattern_verse, query_lower)
         
         if match:
@@ -201,20 +201,27 @@ class BibleRAG:
             verse = int(match.group(3))
             
             for book in books:
-                if book in book_part or book_part in book:
+                if book == book_part or book in book_part:
                     return (book.title(), chapter, verse)
         
-        # Pattern 2: Book Chapter (e.g., "Exodus 3", "Genesis 18") - chapter only
-        pattern_chapter = r'(\d?\s*[a-zA-Z]+)\s+(\d+)(?!\s*:)'
+        # Pattern 2: Book Chapter or Chapter Book (e.g., "Exodus 3", "Chapter 3 Joel")
+        pattern_chapter = r'([a-zA-Z]+)\s+(\d+)'
         match = re.search(pattern_chapter, query_lower)
         
         if match:
-            book_part = match.group(1).strip()
-            chapter = int(match.group(2))
+            part1 = match.group(1).strip()
+            part2 = int(match.group(2))
             
+            # Check if part1 is a book
             for book in books:
-                if book in book_part or book_part in book:
-                    return (book.title(), chapter, None)  # None indicates chapter-only
+                if book == part1:
+                    return (book.title(), part2, None)
+            
+            # Handle "chapter 3 joel" case
+            if "chapter" in part1 and any(book in query_lower for book in books):
+                for book in books:
+                    if book in query_lower:
+                        return (book.title(), part2, None)
         
         return None
     

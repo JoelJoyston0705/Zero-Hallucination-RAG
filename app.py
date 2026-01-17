@@ -1,10 +1,11 @@
 """
-Scripture Search - Figma-style Design with Security
+Zero-Hallucination RAG - Premium UI
+Industry-standard dark theme with glassmorphism design
 """
 import streamlit as st
 import os
+import time
 import config
-from rag_system import BibleRAG
 from security import (
     is_authenticated, render_login_page, logout,
     security_check, record_query, check_rate_limit
@@ -12,340 +13,339 @@ from security import (
 
 # Page config
 st.set_page_config(
-    page_title="Scripture Search",
-    page_icon="📖",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    page_title="Bible RAG | Verified Scripture Search",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Figma-style CSS
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
-    #MainMenu, footer, header {visibility: hidden;}
-    
-    * {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    
-    .stApp {
-        background: #ffffff;
-    }
-    
-    .block-container {
-        padding: 2rem 2rem !important;
-        max-width: 800px !important;
-    }
-    
-    /* Hero Title */
-    .hero-title {
-        text-align: center;
-        font-size: 3rem;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 3rem 0 3rem 0;
-        line-height: 1.2;
-    }
-    
-    .hero-highlight {
-        color: #1a1a1a;
-    }
-    
-    /* Large Input Box */
-    .prompt-container {
-        background: #ffffff;
-        border: 1px solid #e5e5e5;
-        border-radius: 16px;
-        padding: 1.25rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Streamlit Input Override */
-    .stTextArea > div > div > textarea {
-        background: #ffffff !important;
-        border: none !important;
-        border-radius: 0 !important;
-        padding: 0 !important;
-        font-size: 1rem !important;
-        color: #1a1a1a !important;
-        resize: none !important;
-        min-height: 80px !important;
-    }
-    
-    .stTextArea > div > div > textarea:focus {
-        box-shadow: none !important;
-    }
-    
-    .stTextArea > div > div > textarea::placeholder {
-        color: #9ca3af !important;
-    }
-    
-    .stTextArea label {
-        display: none !important;
-    }
-    
-    /* ALL Buttons - Default Pill Style */
-    .stButton > button {
-        background: #ffffff !important;
-        color: #1a1a1a !important;
-        border: 1px solid #e5e5e5 !important;
-        border-radius: 100px !important;
-        padding: 0.6rem 1.25rem !important;
-        font-size: 0.9rem !important;
-        font-weight: 500 !important;
-        transition: all 0.2s ease !important;
-        width: auto !important;
-        min-width: auto !important;
-    }
-    
-    .stButton > button:hover {
-        background: #f5f5f5 !important;
-        border-color: #d1d5db !important;
-    }
-    
-    /* Submit Button Override - Target first column button */
-    .stColumn:last-child .stButton > button {
-        background: #1a1a1a !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 50% !important;
-        width: 48px !important;
-        height: 48px !important;
-        min-width: 48px !important;
-        padding: 0 !important;
-        font-size: 1.25rem !important;
-    }
-    
-    .stColumn:last-child .stButton > button:hover {
-        background: #333333 !important;
-    }
-    
-    /* Suggestion Pills styling retained */
-    .suggestions {
-        display: flex;
-        justify-content: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-    }
-    
-    .suggestion-pill {
-        background: #ffffff;
-        border: 1px solid #e5e5e5;
-        border-radius: 100px;
-        padding: 0.6rem 1.25rem;
-        font-size: 0.9rem;
-        color: #1a1a1a;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    
-    .suggestion-pill:hover {
-        background: #f5f5f5;
-        border-color: #d1d5db;
-    }
-    
-    /* Answer Card */
-    .answer-card {
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin: 2rem 0;
-    }
-    
-    .answer-question {
-        font-size: 0.85rem;
-        color: #6b7280;
-        margin-bottom: 1rem;
-    }
-    
-    .answer-badge {
-        display: inline-block;
-        background: #1a1a1a;
-        color: white;
-        padding: 0.2rem 0.6rem;
-        border-radius: 6px;
-        font-size: 0.7rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        margin-bottom: 0.75rem;
-    }
-    
-    .answer-text {
-        font-size: 1rem;
-        line-height: 1.7;
-        color: #1a1a1a;
-    }
-    
-    .sources-row {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #e5e7eb;
-        font-size: 0.8rem;
-        color: #6b7280;
-    }
-    
-    /* Footer */
-    .footer-info {
-        text-align: center;
-        margin-top: 3rem;
-        padding-top: 2rem;
-        border-top: 1px solid #f3f4f6;
-    }
-    
-    .footer-badges {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        color: #9ca3af;
-        font-size: 0.8rem;
-    }
-    
-    .footer-badge {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-    
-    /* Spinner */
-    .stSpinner > div {
-        border-top-color: #1a1a1a !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Session state
-if 'rag' not in st.session_state:
-    st.session_state.rag = None
-if 'answer' not in st.session_state:
-    st.session_state.answer = None
-
-@st.cache_resource
-def get_rag():
-    try:
-        return BibleRAG(language="en")
-    except:
-        return None
-
 # ========================================
-# AUTHENTICATION CHECK
+# AUTHENTICATION FIRST (Before any UI)
 # ========================================
 if not is_authenticated():
     render_login_page()
     st.stop()
 
 # ========================================
-# AUTHENTICATED CONTENT BELOW
+# GLOBAL DESIGN SYSTEM (CSS)
 # ========================================
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+    :root {
+        --primary: #ffffff;
+        --accent: #7c3aed;
+        --bg-main: #0b0b0b;
+        --bg-sidebar: #121212;
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.6);
+        --card-bg: #181818;
+        --border: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Deep Black Background */
+    .stApp {
+        background: var(--bg-main) !important;
+        background-image: none !important;
+    }
+
+    #MainMenu, footer, header {visibility: hidden;}
+
+    /* Typography */
+    html, body, [class*="st-"] {
+        font-family: 'Inter', sans-serif;
+        color: var(--text-primary);
+    }
+
+    h1, h2, h3, .hero-title {
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.04em !important;
+        color: var(--text-primary) !important;
+    }
+
+    .block-container {
+        padding: 4rem 2rem !important;
+        max-width: 1100px !important;
+    }
+
+    /* Hero Section */
+    .hero-badge {
+        background: var(--card-bg);
+        color: var(--text-primary);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: 1px solid var(--border);
+        display: inline-block;
+        margin-bottom: 2rem;
+    }
+
+    .hero-title {
+        font-size: 5rem !important;
+        text-align: left;
+        margin-bottom: 0.5rem !important;
+        line-height: 1.0 !important;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        margin-bottom: 4rem;
+        max-width: 700px;
+    }
+
+    /* Pulse Animation */
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    }
+
+    .status-indicator {
+        display: inline-block;
+        width: 8px; height: 8px;
+        background: #4ade80;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse-green 2s infinite;
+        vertical-align: middle;
+    }
+
+    /* Input Console */
+    div[data-testid="stTextArea"] textarea {
+        background: #1e1e1e !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 12px !important;
+        color: var(--text-primary) !important;
+        padding: 1.25rem !important;
+        font-size: 1rem !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    }
+
+    div[data-testid="stTextArea"] textarea::placeholder {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+
+    div[data-testid="stTextArea"] textarea:focus {
+        border-color: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    /* Suggestion Pills */
+    button[key*="pill_"] {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 100px !important;
+        padding: 0.4rem 1.25rem !important;
+        font-size: 0.85rem !important;
+        width: auto !important;
+        min-width: 100px !important;
+    }
+
+    /* Answer Card */
+    .answer-card {
+        background: #121212;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-top: 4rem;
+    }
+
+    .metric-badge {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* Global Button Contrast fix */
+    .stButton > button {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+    }
+
+    .stButton > button * {
+        color: #000000 !important;
+    }
+
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: var(--bg-sidebar) !important;
+        border-right: 1px solid var(--border) !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Session state
+if 'rag' not in st.session_state: st.session_state.rag = None
+if 'verified_rag' not in st.session_state: st.session_state.verified_rag = None
+if 'answer' not in st.session_state: st.session_state.answer = None
+
+@st.cache_resource
+def get_rag():
+    try:
+        from rag_system import BibleRAG
+        return BibleRAG(language="en")
+    except Exception as e:
+        st.error(f"Error loading RAG: {e}")
+        return None
+
+@st.cache_resource
+def get_verified_rag(_base_rag):
+    try:
+        from verifier_agent import VerifiedBibleRAG
+        return VerifiedBibleRAG(_base_rag, enable_verification=True)
+    except Exception as e:
+        st.error(f"Error loading verifier: {e}")
+        return None
 
 # Load RAG
 if st.session_state.rag is None:
     st.session_state.rag = get_rag()
+    if st.session_state.rag:
+        st.session_state.verified_rag = get_verified_rag(st.session_state.rag)
 
-# Show rate limit info in sidebar
+# Sidebar
 with st.sidebar:
-    st.markdown("### 🔐 Security")
+    st.markdown(f"""
+        <div style="padding: 1rem 0; margin-bottom: 2rem;">
+            <div style="font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.05em; margin-bottom: 0.5rem;">
+                Bible RAG
+            </div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; display: flex; align-items: center;">
+                <span class="status-indicator"></span> Verified Console
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    username = st.session_state.get('username', 'Guest')
+    st.markdown(f"""
+        <div style="background: #1e1e1e; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.2rem;">👤</span>
+            <div><div style="font-size: 0.85rem; font-weight: 700; color: #fff;">{username}</div><div style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">Research Access</div></div>
+        </div>
+    """, unsafe_allow_html=True)
+
     _, _, remaining = check_rate_limit()
-    st.info(f"Queries remaining: {remaining}/30 per hour")
-    if st.button("🚪 Logout"):
+    st.markdown(f"""
+        <div style="margin-bottom: 2rem;">
+            <div style="color: rgba(255,255,255,0.4); font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 1rem;">System Status</div>
+            <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border);">
+                <div style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin-bottom: 0.5rem;">Queries Token</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #fff;">{remaining}<span style="font-size: 0.9rem; color: rgba(255,255,255,0.2);"> / 10</span></div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    with st.expander("🛠️ System Intelligence"):
+        st.markdown("""<div style="color: rgba(255,255,255,0.5); font-size: 0.8rem; line-height: 2; padding: 0.5rem 0;">• Model: <span style="color:#fff;">GPT-4o-mini</span><br>• Store: <span style="color:#fff;">FAISS Vector</span><br>• Agent: <span style="color:#4ade80;">Active ✓</span></div>""", unsafe_allow_html=True)
+    
+    st.markdown("<div style='height: 100px;'></div>", unsafe_allow_html=True)
+    if st.button("🚪 Sign Out", use_container_width=True):
         logout()
         st.rerun()
 
-# Hero Title
+# Hero
 st.markdown('''
-    <div class="hero-title">
-        Search the Bible with<br>
-        <span class="hero-highlight">Scripture Search 📖</span>
+    <div style="margin-top: 2rem; margin-bottom: 4rem;">
+        <span class="hero-badge">Divine Intelligence</span>
+        <div class="hero-title" style="font-size: 6rem !important;">The Verified<br>Bible RAG</div>
+        <div class="hero-subtitle">A high-fidelity research application designed for grounded biblical analysis.</div>
     </div>
 ''', unsafe_allow_html=True)
 
-# Main Input Area
+# Main Input
 if st.session_state.rag:
-    col1, col2 = st.columns([10, 1])
-    
+    col1, col2 = st.columns([12, 1])
     with col1:
-        question = st.text_area(
-            "prompt",
-            placeholder="Ask any question about the Bible...",
-            height=100,
-            label_visibility="collapsed"
-        )
-    
+        question = st.text_area("prompt", placeholder="Send a message... (Enter to search, Shift+Enter for new line)", height=120, label_visibility="collapsed", key="bible_prompt")
     with col2:
-        st.markdown("<div style='height: 50px'></div>", unsafe_allow_html=True)
-        search = st.button("→")
+        st.markdown("<div style='height: 60px'></div>", unsafe_allow_html=True)
+        search = st.button("⮕", key="search_btn")
     
+    # Enter-to-Submit JS
+    import streamlit.components.v1 as components
+    components.html("""
+        <script>
+        function setup() {
+            const doc = window.parent.document;
+            const textarea = doc.querySelector('textarea[aria-label="prompt"]');
+            const searchBtn = Array.from(doc.querySelectorAll('button')).find(btn => btn.innerText.includes('⮕'));
+            
+            if (textarea && searchBtn && !textarea.dataset.listenerAdded) {
+                textarea.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        textarea.blur();
+                        setTimeout(() => { searchBtn.click(); }, 150);
+                    }
+                });
+                textarea.dataset.listenerAdded = 'true';
+            }
+        }
+        setInterval(setup, 1000);
+        </script>
+        """, height=0)
+
     if search and question:
-        # Security check
-        is_allowed, sanitized_query, error = security_check(question)
-        
-        if not is_allowed:
-            st.error(f"⚠️ {error}")
+        is_allowed, query, err = security_check(question)
+        if not is_allowed: st.error(f"⚠️ {err}")
         else:
             with st.spinner(""):
-                result = st.session_state.rag.query(sanitized_query)
-                st.session_state.answer = {"q": sanitized_query, "a": result["answer"], "s": result["sources"]}
-                record_query()  # Record for rate limiting
+                res = st.session_state.verified_rag.query(query) if st.session_state.verified_rag else st.session_state.rag.query(query)
+                st.session_state.answer = {"q": query, "a": res["answer"], "s": res["sources"], "v": res.get("verification", {})}
+                record_query()
                 st.rerun()
-    
-    # Suggestion Pills
-    st.markdown('<div class="suggestions">', unsafe_allow_html=True)
-    
-    examples = [
-        ("Who speaks in Job 38:1?", "job"),
-        ("Abraham's promises", "abraham"),
-        ("The Ten Commandments", "commandments"),
-        ("What is love?", "love")
-    ]
-    
-    cols = st.columns(len(examples))
-    for i, (text, key) in enumerate(examples):
-        with cols[i]:
-            if st.button(text, key=key, use_container_width=True):
-                with st.spinner(""):
-                    result = st.session_state.rag.query(text)
-                    st.session_state.answer = {"q": text, "a": result["answer"], "s": result["sources"]}
-                    st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
-else:
-    st.error("⚠️ Run `python setup.py` first")
+# Pills
+if st.session_state.rag:
+    st.markdown('<div class="pills-container" style="margin-top:1rem; display:flex; gap:0.75rem; flex-wrap:wrap;">', unsafe_allow_html=True)
+    for text, key in [("Who is Job?", "job"), ("Abraham's life", "abraham"), ("The Law", "law"), ("Meaning of Love", "love")]:
+        if st.button(text, key=f"pill_{key}"):
+            with st.spinner(""):
+                res = st.session_state.verified_rag.query(text) if st.session_state.verified_rag else st.session_state.rag.query(text)
+                st.session_state.answer = {"q": text, "a": res["answer"], "s": res["sources"], "v": res.get("verification", {})}
+                record_query(); st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Answer Display
 if st.session_state.answer:
     ans = st.session_state.answer
-    text = ans["a"]
+    v = ans.get("v", {})
+    rate = v.get("grounding_rate", 0.0)
     
-    badge = "Search Result"
-    if "📖 Direct verse" in text:
-        badge = "Direct Verse"
-        text = text.split("\n\n", 1)[-1] if "\n\n" in text else text
-    elif "📚 Thematic" in text:
-        badge = "Thematic"
-        text = text.split("\n\n", 1)[-1] if "\n\n" in text else text
+    if v.get("rejected") or rate < 0.5: icon, status, color = "⚠️", "Verification Failed", "#ef4444"
+    elif rate < 0.8: icon, status, color = "◑", "Partial Verification", "#fbbf24"
+    else: icon, status, color = "🛡️", "Highly Verified", "#4ade80"
     
-    sources = " • ".join(ans["s"][:6]) if ans["s"] else ""
+    sources_html = "".join([f'<span style="background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:0.4rem 0.8rem; font-size:0.75rem; margin-right:0.5rem;">📖 {s}</span>' for s in ans["s"][:6]])
     
     st.markdown(f'''
-        <div class="answer-card">
-            <div class="answer-question">❓ {ans["q"]}</div>
-            <span class="answer-badge">{badge}</span>
-            <div class="answer-text">{text}</div>
-            <div class="sources-row">📖 {sources}</div>
-        </div>
-    ''', unsafe_allow_html=True)
+<div class="answer-card">
+    <div style="color:rgba(255,255,255,0.5); font-size:0.85rem; text-transform:uppercase; font-weight:700; margin-bottom:1rem;">Research Query</div>
+    <div style="font-size:1.25rem; font-weight:700; color:#fff; margin-bottom:2rem;">{ans["q"]}</div>
+    <div style="display:flex; gap:1rem; margin-bottom:2.5rem;">
+        <div class="metric-badge" style="color:{color};">{icon} {status}</div>
+        <div class="metric-badge">Accuracy: {rate*100:.0f}%</div>
+    </div>
+    <div style="font-size:1.1rem; line-height:1.8; color:#fff; border-left:2px solid #333; padding-left:1.5rem; margin-bottom:3rem;">{ans["a"]}</div>
+    <div style="background:rgba(255,255,255,0.02); border-radius:8px; padding:1.5rem; border:1px solid rgba(255,255,255,0.1);">
+        <div style="color:rgba(255,255,255,0.3); font-size:0.7rem; text-transform:uppercase; font-weight:800; margin-bottom:1rem;">Vector Grounding Sources</div>
+        {sources_html}
+    </div>
+</div>
+''', unsafe_allow_html=True)
 
 # Footer
-st.markdown('''
-    <div class="footer-info">
-        <div class="footer-badges">
-            <span class="footer-badge">🛡️ Scripture only</span>
-            <span class="footer-badge">📚 Always cited</span>
-            <span class="footer-badge">✓ Zero hallucination</span>
-        </div>
-    </div>
-''', unsafe_allow_html=True)
+st.markdown('<div style="height:100px;"></div><div style="border-top:1px solid rgba(255,255,255,0.05); padding:2rem 0; color:rgba(255,255,255,0.2); font-size:0.75rem; display:flex; justify-content:space-between;"><div>© 2026 Bible RAG Console • Grounded in Truth</div><div>🛡️ Zero-Hallucination | ✓ Agent Verified</div></div>', unsafe_allow_html=True)

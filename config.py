@@ -20,6 +20,7 @@ FAISS_INDEX_TA = "faiss_index_ta"
 DATA_PATH = "data"
 BIBLE_DATA_EN = os.path.join(DATA_PATH, "bible_kjv_en.txt")
 BIBLE_DATA_TA = os.path.join(DATA_PATH, "bible_kjv_ta.txt")
+USERS_FILE = os.path.join(DATA_PATH, "users.json")
 
 # RAG Configuration - Optimized for SPEED
 CHUNK_SIZE = 500

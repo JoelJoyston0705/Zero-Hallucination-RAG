@@ -30,8 +30,22 @@ class BibleParser:
         # Pattern 2: "Chapter:Verse Text" (with book context)
         verse_pattern = re.compile(r'^(\d+):(\d+)\s+(.+)$')
         
-        # Pattern 3: Book name on its own line
-        book_pattern = re.compile(r'^(THE\s+)?([A-Z\s]{3,})$')
+        # Pattern 3: Book name on its own line (Mixed case or Caps)
+        book_pattern = re.compile(r'^([A-Za-z0-9\s:]+)$')
+        
+        # Comprehensive list of Bible books for validation
+        common_books = [
+            'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
+            'Joshua', 'Judges', 'Ruth', 'Samuel', 'Kings', 'Chronicles',
+            'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
+            'Ecclesiastes', 'Song', 'Isaiah', 'Jeremiah', 'Lamentations',
+            'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 'Obadiah',
+            'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai',
+            'Zechariah', 'Malachi', 'Matthew', 'Mark', 'Luke', 'John',
+            'Acts', 'Romans', 'Corinthians', 'Galatians', 'Ephesians',
+            'Philippians', 'Colossians', 'Thessalonians', 'Timothy',
+            'Titus', 'Philemon', 'Hebrews', 'James', 'Peter', 'Jude', 'Revelation'
+        ]
         
         current_book = None
         current_chapter = None
@@ -41,6 +55,13 @@ class BibleParser:
             if not line:
                 continue
             
+            # Skip Gutenberg headers/license lines that might look like books
+            if any(x in line for x in ['Project Gutenberg', 'EBook', 'License', 'King James Version', 'Old Testament', 'New Testament']):
+                if "Bible" not in line or ":" in line:
+                    pass
+                else:
+                    continue
+
             # Try eBible format first: "Book Chapter:Verse Text"
             ebible_match = ebible_pattern.match(line)
             if ebible_match:
@@ -56,27 +77,24 @@ class BibleParser:
                 })
                 continue
             
-            # Try book name detection (all caps, 3+ chars, reasonable length)
-            if book_pattern.match(line) and 3 <= len(line.split()) <= 5 and len(line) < 30:
-                # Check if it's actually a book name (not just random caps)
-                potential_book = line.title().strip()
-                # Common Bible books
-                common_books = ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
-                               'Joshua', 'Judges', 'Ruth', 'Samuel', 'Kings', 'Chronicles',
-                               'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
-                               'Ecclesiastes', 'Song', 'Isaiah', 'Jeremiah', 'Lamentations',
-                               'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 'Obadiah',
-                               'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai',
-                               'Zechariah', 'Malachi', 'Matthew', 'Mark', 'Luke', 'John',
-                               'Acts', 'Romans', 'Corinthians', 'Galatians', 'Ephesians',
-                               'Philippians', 'Colossians', 'Thessalonians', 'Timothy',
-                               'Titus', 'Philemon', 'Hebrews', 'James', 'Peter', 'John',
-                               'Jude', 'Revelation']
-                
-                # Check if any common book name is in the line
-                if any(book in potential_book for book in common_books):
-                    current_book = potential_book
-                    continue
+            # Try book name detection
+            # Check if this line is EXACTLY a book name or contains one as its primary identity
+            potential_book = line.strip()
+            found_book = None
+            
+            # Check for exact matches first
+            for book in common_books:
+                if potential_book.lower() == book.lower():
+                    found_book = book
+                    break
+                # Handle "The Book of..." or "The First Book of... Called Genesis"
+                if "Called " + book in potential_book or potential_book.endswith(" " + book):
+                    found_book = book
+                    break
+            
+            if found_book:
+                current_book = found_book
+                continue
             
             # Try simple verse pattern: "Chapter:Verse Text"
             verse_match = verse_pattern.match(line)

@@ -37,9 +37,9 @@ ENV/
 .env
 
 # Data files
-data/
-*.txt
-*.csv
+data/users.json
+data/query_log.json
+!data/*.txt
 
 # Vector stores
 vector_stores/
