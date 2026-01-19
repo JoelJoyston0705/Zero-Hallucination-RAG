@@ -1,10 +1,13 @@
-"""
-Zero-Hallucination RAG - Premium UI
-Industry-standard dark theme with glassmorphism design
-"""
 import streamlit as st
 import os
 import time
+
+# --- MAC SEGFAULT PROTECTION ---
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+# -------------------------------
+
 import config
 from security import (
     is_authenticated, render_login_page, logout,

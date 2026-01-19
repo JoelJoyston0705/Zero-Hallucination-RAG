@@ -1,140 +1,78 @@
-# Quick Start Guide
+# 🚀 Bible RAG: Quick Start Guide
 
-## Prerequisites
+Follow these steps to get your own high-fidelity research console running in minutes.
 
-- Python 3.8 or higher
-- pip (Python package manager)
-- OpenAI API key (optional, but recommended for better responses)
+## 🛠️ Prerequisites
+- **Python 3.10+**
+- **OpenAI API Key**: Required for the generation and verification agents.
+- **Git**: To clone the repository.
 
-## Installation Steps
+---
 
-### 1. Install Dependencies
+## 💻 Installation
 
+### 1. Clone the Repository
+```bash
+git clone https://github.com/JoelJoyston0705/Zero-Hallucination-RAG.git
+cd Bible_RAG
+```
+
+### 2. Setup Virtual Environment (Recommended)
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### 3. Install Requirements
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Set Up Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
-cp .env.example .env
+### 4. Configure Environment
+Create a `.env` file in the root directory and add your OpenAI Key:
+```env
+OPENAI_API_KEY=sk-your-key-here
 ```
 
-Edit `.env` and add your OpenAI API key:
+---
 
-```
-OPENAI_API_KEY=your_api_key_here
-```
+## 🧠 System Initialization
 
-**Note:** The system will work without an OpenAI API key, but responses will be limited to showing retrieved passages only.
-
-### 3. Download Bible Data and Create Vector Stores
-
-Run the setup script:
+Before running the app, you must build the **Vector Indices**. This processes the 7,000+ verses of the Bible into a searchable FAISS database.
 
 ```bash
 python setup.py
 ```
+*This will download the source text and generate embeddings. It usually takes 1-2 minutes.*
 
-This will:
-- Download KJV Bible text (English)
-- Attempt to download Tamil Bible (if available)
-- Parse the Bible text into structured verses
-- Create embeddings using sentence transformers
-- Build FAISS vector stores for fast retrieval
-- Save everything for future use
+---
 
-**Time:** This process may take 10-30 minutes depending on your internet connection and computer speed.
+## 🚀 Running the Console
 
-### 4. Run the Application
+To start the premium research interface, run the following command:
 
 ```bash
-streamlit run app.py
+python run_app.py
 ```
+*(Note: Using `run_app.py` is recommended as it includes safety guards for macOS stability.)*
 
-The application will open in your browser at `http://localhost:8501`
+---
 
-## Tamil Bible Setup
+## 🛡️ Trying the Features
 
-If the automatic Tamil Bible download fails, you can manually add Tamil Bible text:
+1. **Register**: On first launch, go to the **Register** tab on the login screen to create your local research account.
+2. **The Expert Test**: Ask *"How did Joseph's life change in Egypt?"* to see high-speed retrieval.
+3. **The Hallucination Test**: Ask *"What does the Bible say about Tesla cars?"* to see the **Verifier Agent** trigger a red warning badge.
+4. **The Pizza Test**: Ask for a pizza recipe to see the **Domain Guard** prevent the model from using outside training data.
 
-1. Download Tamil Bible text from a public domain source
-2. Save it as `data/bible_kjv_ta.txt`
-3. Run `python setup.py` again to create the Tamil vector store
+---
 
-## Testing
+## 📈 Troubleshooting
+| Issue | Solution |
+| :--- | :--- |
+| **Segmentation Fault** | Always use `python run_app.py` instead of the standard streamlit command. |
+| **Index Not Found** | Ensure you ran `python setup.py` completely. |
+| **Login Loops** | Registration and logins are stored locally in `data/users.json`. If you get stuck, you can safely delete that file to reset. |
 
-Test the RAG system:
-
-```bash
-python test_rag.py --language en
-```
-
-## Troubleshooting
-
-### Issue: "Vector store not found"
-
-**Solution:** Run `python setup.py` to create the vector stores.
-
-### Issue: "Error downloading Bible"
-
-**Solution:** 
-- Check your internet connection
-- The script will try multiple sources automatically
-- You can manually download Bible text and place it in the `data/` directory
-
-### Issue: "OpenAI API key not found"
-
-**Solution:**
-- The system works without an API key, but with limited functionality
-- For full functionality, add your API key to `.env` file
-- Get an API key from https://platform.openai.com/
-
-### Issue: "Out of memory" during setup
-
-**Solution:**
-- Reduce `CHUNK_SIZE` in `config.py`
-- Process one language at a time
-- Use a machine with more RAM
-
-## Usage Tips
-
-1. **Ask specific questions:** "What does the Bible say about love?" works better than "Tell me about the Bible"
-
-2. **Use natural language:** The system understands questions in natural language
-
-3. **Check sources:** Every answer includes Bible references - verify them!
-
-4. **Language switching:** Use the sidebar to switch between English and Tamil
-
-5. **Clear history:** Use the "Clear History" button to start fresh
-
-## Zero Hallucination Guarantee
-
-The system is designed to:
-- Only use retrieved Bible passages
-- Not add information not in the passages
-- Cite sources for every answer
-- Say "I cannot find" instead of guessing
-
-If you notice any hallucinations, please report them!
-
-## Next Steps
-
-- Add more languages by following the language addition guide in README.md
-- Customize the UI in `app.py`
-- Adjust retrieval parameters in `config.py`
-- Add more Bible versions (requires modifying the data downloader)
-
-## Support
-
-For issues or questions:
-1. Check the README.md for detailed documentation
-2. Review the code comments
-3. Check if vector stores are properly created
-4. Verify Bible text files are in the `data/` directory
-
-
-
+---
+**Build for Truth. Built for Trust.**
